@@ -1,0 +1,90 @@
+version: "3.9"
+
+services:
+  # ───────────────────────────────
+  # PostgreSQL
+  # ───────────────────────────────
+  postgres:
+    image: postgres:17.4
+    container_name: otp-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: otpbd
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ───────────────────────────────
+  # MailHog – тестовый SMTP-сервер
+  # ───────────────────────────────
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: otp-mailhog
+    restart: unless-stopped
+    ports:
+      - "3025:1025"   # SMTP-порт (приложение будет слать на 3025)
+      - "8025:8025"   # Web-GUI http://localhost:8025
+
+  # ───────────────────────────────
+  # SMPPSim – эмулятор SMSC
+  # ───────────────────────────────
+  smppsim:
+    image: eagafonov/smppsim:latest
+    container_name: otp-smppsim
+    restart: unless-stopped
+    ports:
+      - "2775:2775"   # SMPP порт, на который коннектится приложение
+      - "8088:88"     # Web-GUI http://localhost:8088 (порт 88 внутри контейнера)
+
+  # ───────────────────────────────
+  # Spring Boot-приложение
+  # ───────────────────────────────
+  otp-app:
+    build:
+      context: .
+      dockerfile: Dockerfile          # Предполагается, что в проекте есть Dockerfile
+    image: otp-project-miphi:latest
+    container_name: otp-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"                   # REST-API + Swagger
+    environment:
+      # Переопределяем хосты/порты, чтобы приложение видело контейнеры
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/otpbd
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+
+      # Настройки для MailHog
+      SPRING_MAIL_HOST: mailhog
+      SPRING_MAIL_PORT: 1025          # внутренний SMTP-порт MailHog внутри Docker-сети
+      SPRING_MAIL_FROM: no-reply@molkov.ru
+
+      # Настройки для SMPP
+      SPRING_SMPP_HOST: smppsim
+      SPRING_SMPP_PORT: 2775
+      SPRING_SMPP_SYSTEM_ID: smppclient1
+      SPRING_SMPP_PASSWORD: password
+      SPRING_SMPP_SYSTEM_TYPE: OTP
+      SPRING_SMPP_SOURCE_ADDR: OTPService
+
+      # при желании: JWT, TELEGRAM, и др. можно прокинуть как переменные
+      # TELEGRAM_BOT_TOKEN: <your_token>
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+      smppsim:
+        condition: service_started
+
+volumes:
+  postgres_data:

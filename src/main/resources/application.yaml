@@ -1,0 +1,53 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/otpbd
+    username: user
+    password: password
+
+  jpa:
+    database: postgresql
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  mail:
+    from: no-reply@molkov.ru
+    host: localhost
+    port: 3025
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+  security:
+    jwt:
+      secret: RCX/mUVkBnsYt1ctsIKd9ZxQDatXhC9pyYbrhzZwbi0=
+      expirationMs: 3600000000
+
+  logging:
+    level:
+      root: info
+
+  server:
+    port: 8080
+
+  otp:
+    check-expired-delay-ms: 100000
+
+  telegram:
+    bot:
+      token: 7883204822:AAHO7qt41rOE6PRSiU9C-h1IKTn1may94Tg
+
+  smpp:
+    host: localhost
+    port: 2775
+    system_id: smppclient1
+    password: password
+    system_type: OTP
+    source_addr: OTPService

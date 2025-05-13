@@ -1,0 +1,26 @@
+# Compiled class files
+*.class
+target/
+
+# Log files
+*.log
+logs/
+
+# IDE files
+.idea/
+.qodo/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+
+# Maven wrapper
+.mvn/wrapper/maven-wrapper.jar
+
+# Local configuration
+application-local.properties
+application-local.yml
+
+# Docker volumes
+postgres_data/
